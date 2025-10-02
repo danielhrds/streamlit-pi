@@ -93,11 +93,11 @@ elif option == "Mapa de calor":
       radius=15,
       center={"lat": -8.05, "lon": -34.9},
       zoom=11,
-      title="Mapa de Calor em Recife"
+      title="Mapa de Calor"
   )
 
   fig.update_layout(height=700)
-  st.title("Mapa de Calor - Homicídios em Recife")
+  st.title("Mapa de Calor")
   st.markdown("Este mapa mostra a concentração de **homicídios** por bairro em Recife, com peso baseado no número de vítimas registradas.")
 
   st.plotly_chart(fig, use_container_width=True)
