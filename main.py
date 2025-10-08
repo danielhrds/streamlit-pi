@@ -139,7 +139,7 @@ if option == "Gráficos relacionados a roubo":
         fig5.update_layout(yaxis=dict(categoryorder="total ascending"))
         st.plotly_chart(fig5, use_container_width=True)
 elif option == "Quantidade de vítimas x Bairro":
-    df_homicidios = df[df["tipo_crime"].str.lower() == "homicídio"]
+    df_homicidios = df[df["tipo_crime"].str.lower() == "roubo"]
     ranking = df_homicidios.groupby("bairro")["quantidade_vitimas"].sum().reset_index()
     ranking = ranking.sort_values(by="quantidade_vitimas", ascending=False).head(10)
 
@@ -149,7 +149,7 @@ elif option == "Quantidade de vítimas x Bairro":
         y="quantidade_vitimas",
         text="quantidade_vitimas",
         color_discrete_sequence=["#1f77b4"],
-        title=" Top 10 Bairros com Mais Vítimas de Homicídio"
+        title=" Top 10 Bairros com Mais Vítimas de Roubo"
     )
     fig.update_traces(textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
@@ -204,7 +204,7 @@ elif option == "Mapa de calor (Roubos)":
     mes_selecionado = st.selectbox("Selecionar mês:", options=meses_disponiveis, index=len(meses_disponiveis)-1)
 
     bairros = st.multiselect(
-        "🏙️ Filtrar bairros:",
+        "Filtrar bairros:",
         options=sorted(df["bairro"].dropna().unique()),
         default=[]
     )
