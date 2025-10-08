@@ -6,6 +6,7 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
+st.set_page_config(page_title="Dashboard de Gráficos", layout="wide")
 df = pd.read_csv("dataset_ocorrencias_delegacia_5.csv")
 df["data_ocorrencia"] = pd.to_datetime(df["data_ocorrencia"])
 df["ano_mes"] = df["data_ocorrencia"].dt.to_period("M").astype(str)
@@ -37,7 +38,6 @@ col2.metric("🚨 Anomalias", f"{n_anomalias}")
 col3.metric("🏘️ Bairros Afetados", f"{n_bairros}")
 st.markdown("---")
 
-st.set_page_config(page_title="Dashboard de Gráficos", layout="wide")
 
 st.markdown("""
     <style>
