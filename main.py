@@ -31,7 +31,7 @@ iso = IsolationForest(contamination=0.1, random_state=42)
 df_ano["anomaly"] = iso.fit_predict(X)
 n_anomalias = (df_ano["anomaly"] == -1).sum()
 
-st.markdown("##Dashboard de Roubos em Recife")
+st.markdown("## Dashboard de Roubos em Recife")
 col1, col2, col3 = st.columns(3)
 col1.metric("Total de Ocorrências", f"{total_ocorrencias:,}")
 col2.metric("Anomalias", f"{n_anomalias}")
