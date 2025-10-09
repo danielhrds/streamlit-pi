@@ -25,14 +25,14 @@ else:
     st.error("Dataset de treino não encontrado. Por favor, adicione 'dataset_ocorrencias_delegacia_5.csv' à pasta ou carregue um novo arquivo.")
     st.stop()
 
+dias_ordenados = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 df_roubos = df[df["tipo_crime"].str.lower() == "roubo"].copy()
 df_roubos["data_ocorrencia"] = pd.to_datetime(df_roubos["data_ocorrencia"])
 df_roubos["ano_mes"] = df_roubos["data_ocorrencia"].dt.to_period("M").astype(str)
 df_roubos['hora'] = df_roubos['data_ocorrencia'].dt.hour
-
-dias_ordenados = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 df_roubos['dia_semana'] = df_roubos['data_ocorrencia'].dt.day_name()
 df_roubos['dia_semana'] = pd.Categorical(df_roubos['dia_semana'], categories=dias_ordenados, ordered=True)
+
 
 total_ocorrencias = len(df_roubos)
 n_bairros = df_roubos["bairro"].nunique()
@@ -68,10 +68,62 @@ option = st.sidebar.radio(
         "Gráficos relacionados a roubo",
         "Mapa de calor",
         "Clusters",
-        "Anomalias"
+        "Anomalias",
+        "Previsão de Roubo"
     ),
     index=0
 )
+
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+
+if option == "Previsão de Roubo":
+    st.header("🔮 Previsão de Ocorrência de Roubo")
+
+    df_model = df.copy()
+    df_model["data_ocorrencia"] = pd.to_datetime(df_model["data_ocorrencia"], errors="coerce")
+    df_model = df_model.dropna(subset=["bairro", "data_ocorrencia", "tipo_crime"])
+
+    df_model["hora"] = df_model["data_ocorrencia"].dt.hour
+    df_model["dia_semana"] = df_model["data_ocorrencia"].dt.day_name()
+    df_model["roubo"] = (df_model["tipo_crime"].str.lower() == "roubo").astype(int)
+
+    df_model["bairro"] = df_model["bairro"].astype("category")
+    df_model["dia_semana"] = df_model["dia_semana"].astype("category")
+
+    X = df_model[["bairro", "dia_semana", "hora"]].copy()
+    X["bairro"] = X["bairro"].cat.codes
+    X["dia_semana"] = X["dia_semana"].cat.codes
+    y = df_model["roubo"]
+
+    model = RandomForestClassifier(n_estimators=200, random_state=42)
+    model.fit(X, y)
+
+    st.markdown("### Informe o local e horário para previsão")
+    bairro_input = st.selectbox("Bairro:", sorted(df_model["bairro"].unique()))
+    hora_input = st.slider("Hora do dia:", 0, 23, 12)
+    dia_input = st.selectbox("Dia da semana:", sorted(df_model["dia_semana"].unique()))
+
+    if st.button("Prever"):
+        try:
+            bairro_code = df_model["bairro"].cat.categories.get_loc(bairro_input)
+            dia_code = df_model["dia_semana"].cat.categories.get_loc(dia_input)
+        except KeyError:
+            st.error("Esse bairro ou dia não está presente no dataset.")
+            st.stop()
+
+        X_new = np.array([[bairro_code, dia_code, hora_input]])
+        prob = model.predict_proba(X_new)[0][1]
+
+        st.subheader("Resultado da previsão:")
+        st.metric("Probabilidade de Roubo", f"{prob*100:.2f}%")
+
+        if prob > 0.6:
+            st.error("🚨 Alta probabilidade de ocorrência de roubo!")
+        elif prob > 0.3:
+            st.warning("⚠️ Probabilidade moderada de roubo.")
+        else:
+            st.success("✅ Baixa probabilidade de roubo.")
 
 if option == "Gráficos relacionados a roubo":
     st.header("Análises de Roubos em Recife")
