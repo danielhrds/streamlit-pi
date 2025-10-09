@@ -76,7 +76,7 @@ option = st.sidebar.radio(
 )
 
 if option == "Previsão de Roubo":
-    st.header("🔮 Previsão de Ocorrência de Roubo")
+    st.header("Previsão de Ocorrência de Roubo")
 
     df_model = df.copy()
     df_model["data_ocorrencia"] = pd.to_datetime(df_model["data_ocorrencia"], errors="coerce")
@@ -117,11 +117,11 @@ if option == "Previsão de Roubo":
         st.metric("Probabilidade de Roubo", f"{prob*100:.2f}%")
 
         if prob > 0.6:
-            st.error("🚨 Alta probabilidade de ocorrência de roubo!")
+            st.error("Alta probabilidade de ocorrência de roubo!")
         elif prob > 0.3:
-            st.warning("⚠️ Probabilidade moderada de roubo.")
+            st.warning("Probabilidade moderada de roubo.")
         else:
-            st.success("✅ Baixa probabilidade de roubo.")
+            st.success("Baixa probabilidade de roubo.")
 
 if option == "Gráficos relacionados a roubo":
     st.header("Análises de Roubos em Recife")
