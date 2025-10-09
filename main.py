@@ -213,7 +213,6 @@ if option == "Gráficos relacionados a roubo":
 elif option == "Mapa de calor":
     st.subheader("Mapa de Calor")
 
-    # Adiciona a opção "Todos" à lista de meses
     selectable_months = ["Todos"] + sorted(df_roubos["ano_mes"].unique())
     selected_month = st.selectbox("Selecionar mês:", options=selectable_months, index=0)
 
@@ -232,7 +231,6 @@ elif option == "Mapa de calor":
         (df_filtered["tipo_crime"].str.lower() == "roubo")
     ].copy()
 
-    # Aplica o filtro de mês apenas se "Todos" não estiver selecionado
     if selected_month != "Todos":
         df_filtered = df_filtered[df_filtered["ano_mes"] == selected_month]
 
