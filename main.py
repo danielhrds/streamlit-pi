@@ -31,11 +31,11 @@ iso = IsolationForest(contamination=0.1, random_state=42)
 df_ano["anomaly"] = iso.fit_predict(X)
 n_anomalias = (df_ano["anomaly"] == -1).sum()
 
-st.markdown("## 📊 Dashboard de Roubos em Recife")
+st.markdown("##Dashboard de Roubos em Recife")
 col1, col2, col3 = st.columns(3)
-col1.metric("📊 Total de Ocorrências", f"{total_ocorrencias:,}")
-col2.metric("🚨 Anomalias", f"{n_anomalias}")
-col3.metric("🏘️ Bairros Afetados", f"{n_bairros}")
+col1.metric("Total de Ocorrências", f"{total_ocorrencias:,}")
+col2.metric("Anomalias", f"{n_anomalias}")
+col3.metric("Bairros Afetados", f"{n_bairros}")
 st.markdown("---")
 
 
@@ -48,19 +48,23 @@ st.markdown("""
 
 # st.title(" Dashboard Interativo com Streamlit")
 
-option = st.sidebar.selectbox(
-    "Navegar para:",
-    [
+st.sidebar.title(" Menu de Navegação")
+
+option = st.sidebar.radio(
+    "Selecione a página:",
+    (
         "Gráficos relacionados a roubo",
         "Quantidade de vítimas x Bairro",
         "Mapa de calor (Roubos)",
         "Clusters",
         "Anomalias"
-    ]
+    ),
+    index=0
 )
 
+
 if option == "Gráficos relacionados a roubo":
-    st.header("📊 Análises de Roubos em Recife")
+    st.header("Análises de Roubos em Recife")
 
     df_roubos = df[df["tipo_crime"].str.lower() == "roubo"].copy()
 
@@ -87,7 +91,7 @@ if option == "Gráficos relacionados a roubo":
         y="ocorrencias",
         x="count",
         orientation="h",
-        title="Top 15 Bairros com Mais Ocorrências de Roubo",
+        title="Top 10 Bairros com Mais Ocorrências de Roubo",
         labels={"ocorrencias": "Quantidade de Ocorrências", "bairro": "Bairro"},
         color="ocorrencias",
         color_continuous_scale="Viridis"
