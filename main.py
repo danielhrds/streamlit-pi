@@ -1,25 +1,20 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from sklearn.cluster import KMeans
-from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
 
 st.set_page_config(page_title="Dashboard de Gráficos", layout="wide")
-# --- Lógica de Carregamento de Dados ---
 
-# Tenta carregar o dataset de treino
 try:
     df_train = pd.read_csv("dataset_ocorrencias_delegacia_5.csv")
 except FileNotFoundError:
     df_train = None
 
-# Adiciona o uploader de arquivo na barra lateral
 st.sidebar.title("Upload de Dataset")
 uploaded_file = st.sidebar.file_uploader("Carregue um CSV para teste", type="csv")
 
-# Define qual dataframe será usado
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.success("Dataset de teste carregado!")
@@ -30,20 +25,17 @@ else:
     st.error("Dataset de treino não encontrado. Por favor, adicione 'dataset_ocorrencias_delegacia_5.csv' à pasta ou carregue um novo arquivo.")
     st.stop()
 
-df["data_ocorrencia"] = pd.to_datetime(df["data_ocorrencia"])
-df["ano_mes"] = df["data_ocorrencia"].dt.to_period("M").astype(str)
-df['hora'] = df['data_ocorrencia'].dt.hour
+df_roubos = df[df["tipo_crime"].str.lower() == "roubo"].copy()
+df_roubos["data_ocorrencia"] = pd.to_datetime(df_roubos["data_ocorrencia"])
+df_roubos["ano_mes"] = df_roubos["data_ocorrencia"].dt.to_period("M").astype(str)
+df_roubos['hora'] = df_roubos['data_ocorrencia'].dt.hour
 
 dias_ordenados = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-df['dia_semana'] = df['data_ocorrencia'].dt.day_name()
-df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=dias_ordenados, ordered=True)
+df_roubos['dia_semana'] = df_roubos['data_ocorrencia'].dt.day_name()
+df_roubos['dia_semana'] = pd.Categorical(df_roubos['dia_semana'], categories=dias_ordenados, ordered=True)
 
-df_roubos = df[df["tipo_crime"].str.lower() == "roubo"].copy()
-total_ocorrencias = df_roubos["quantidade_vitimas"].sum()
+total_ocorrencias = len(df_roubos)
 n_bairros = df_roubos["bairro"].nunique()
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import IsolationForest
 
 # anomalias
 df_ano = df_roubos.groupby("ano_mes")["quantidade_vitimas"].sum().reset_index()
@@ -68,15 +60,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# st.title(" Dashboard Interativo com Streamlit")
-
 st.sidebar.title(" Menu de Navegação")
 
 option = st.sidebar.radio(
     "Selecione a página:",
     (
         "Gráficos relacionados a roubo",
-        "Quantidade de vítimas x Bairro",
         "Mapa de calor",
         "Clusters",
         "Anomalias"
@@ -84,16 +73,11 @@ option = st.sidebar.radio(
     index=0
 )
 
-
 if option == "Gráficos relacionados a roubo":
     st.header("Análises de Roubos em Recife")
 
-    df_roubos = df[df["tipo_crime"].str.lower() == "roubo"].copy()
-
-    # --- Evolução temporal ---
-    serie = df_roubos.groupby("ano_mes")["quantidade_vitimas"].sum().reset_index()
     fig1 = px.line(
-        serie,
+        df_ano,
         x="ano_mes",
         y="quantidade_vitimas",
         title="Evolução de Roubos ao Longo do Tempo",
@@ -102,7 +86,7 @@ if option == "Gráficos relacionados a roubo":
     fig1.update_traces(line=dict(width=3, color="#1f77b4"))
     st.plotly_chart(fig1, use_container_width=True)
 
-    # --- Gráfico 1: Roubos por Bairro ---
+    # roubos por bairro
     ranking_bairro = (
         df_roubos["bairro"].value_counts().reset_index()
         .rename(columns={"index": "bairro", "bairro": "ocorrencias"})  # <- corrigido
@@ -121,7 +105,7 @@ if option == "Gráficos relacionados a roubo":
     fig2.update_layout(yaxis=dict(categoryorder="total ascending"))
     st.plotly_chart(fig2, use_container_width=True)
 
-    # --- Gráfico 2: Roubos por Hora do Dia ---
+    # roubos por hora do dia
     if "hora" in df_roubos.columns:
         fig3 = px.histogram(
             df_roubos,
@@ -132,10 +116,8 @@ if option == "Gráficos relacionados a roubo":
         )
         st.plotly_chart(fig3, use_container_width=True)
 
-    # --- Gráfico 3: Roubos por Dia da Semana ---
+    # roubos por dia da semana
     if "dia_semana" in df_roubos.columns:
-        ordem_dias = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        df_roubos["dia_semana"] = pd.Categorical(df_roubos["dia_semana"], categories=ordem_dias, ordered=True)
         fig4 = px.histogram(
             df_roubos.sort_values("dia_semana"),
             x="dia_semana",
@@ -145,7 +127,7 @@ if option == "Gráficos relacionados a roubo":
         )
         st.plotly_chart(fig4, use_container_width=True)
 
-    # --- Gráfico 4: Tipos de Armas Mais Usadas ---
+    # tipos de armas mais usadas
     if "arma_utilizada" in df_roubos.columns:
         ranking_arma = (
             df_roubos["arma_utilizada"].value_counts().reset_index()
@@ -164,9 +146,8 @@ if option == "Gráficos relacionados a roubo":
         )
         fig5.update_layout(yaxis=dict(categoryorder="total ascending"))
         st.plotly_chart(fig5, use_container_width=True)
-elif option == "Quantidade de vítimas x Bairro":
-    df_homicidios = df[df["tipo_crime"].str.lower() == "roubo"]
-    ranking = df_homicidios.groupby("bairro")["quantidade_vitimas"].sum().reset_index()
+
+    ranking = df_roubos.groupby("bairro")["quantidade_vitimas"].sum().reset_index()
     ranking = ranking.sort_values(by="quantidade_vitimas", ascending=False).head(10)
 
     fig = px.bar(
@@ -179,118 +160,72 @@ elif option == "Quantidade de vítimas x Bairro":
     )
     fig.update_traces(textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
-
-# elif option == "Mapa de calor (Roubos)":
-#     st.subheader(" Mapa de Calor - Roubos em Recife")
-
-#     meses_disponiveis = sorted(df["ano_mes"].unique())
-#     mes_selecionado = st.selectbox(" Selecionar mês:", options=meses_disponiveis, index=len(meses_disponiveis)-1)
-
-#     bairros = st.multiselect(
-#         "🏙️ Filtrar bairros:",
-#         options=sorted(df["bairro"].dropna().unique()),
-#         default=[]
-#     )
-    
-#     df_filtered = df.copy()
-#     if bairros:
-#         df_filtered = df_filtered[df_filtered["bairro"].isin(bairros)]
-
-#     df_roubo = df_filtered[
-#         (df_filtered["tipo_crime"].str.lower() == "roubo") &
-#         (df_filtered["ano_mes"] == mes_selecionado)
-#     ].copy()
-
-#     if df_roubo.empty:
-#         st.warning(" Nenhum dado de roubo encontrado para o mês selecionado.")
-#     else:
-#         df_expanded = df_roubo.loc[df_roubo.index.repeat(df_roubo["quantidade_vitimas"])].reset_index(drop=True)
-
-#         fig = px.density_mapbox(
-#             df_expanded,
-#             lat="latitude",
-#             lon="longitude",
-#             radius=15,
-#             center={"lat": -8.05, "lon": -34.9},
-#             zoom=11,
-#             title=f" Mapa de Calor - Roubos em Recife ({mes_selecionado})",
-#             mapbox_style="carto-positron"
-#         )
-
-#         fig.update_layout(height=700)
-#         st.plotly_chart(fig, use_container_width=True)
-
-#         st.markdown(f"""
-#          Este mapa mostra a concentração de **roubos** por bairro em Recife no mês de **{mes_selecionado}**, com intensidade baseada no número de vítimas registradas.
-#         """)
 elif option == "Mapa de calor":
     st.subheader("Mapa de Calor")
 
     # Adiciona a opção "Todos" à lista de meses
-    meses_disponiveis = ["Todos"] + sorted(df["ano_mes"].unique())
-    mes_selecionado = st.selectbox("Selecionar mês:", options=meses_disponiveis, index=0)
+    selectable_months = ["Todos"] + sorted(df_roubos["ano_mes"].unique())
+    selected_month = st.selectbox("Selecionar mês:", options=selectable_months, index=0)
 
     bairros = st.multiselect(
         "Filtrar bairros:",
-        options=sorted(df["bairro"].dropna().unique()),
+        options=sorted(df_roubos["bairro"].dropna().unique()),
         default=[]
     )
 
-    # Filtros de hora e dia da semana
-    if "hora" in df.columns:
-        hora_min, hora_max = 0, 23
-        hora_selecionada = st.slider("Filtrar por hora do dia:", min_value=hora_min, max_value=hora_max, value=(hora_min, hora_max))
-    else:
-        hora_selecionada = (0, 23)
-
-    if "dia_semana" in df.columns:
-        dias_disponiveis = sorted(df["dia_semana"].dropna().unique())
-        dias_selecionados = st.multiselect("Filtrar por dia da semana:", options=dias_disponiveis, default=dias_disponiveis)
-    else:
-        dias_selecionados = None
-
-    df_filtered = df.copy()
+    selected_days = []
+    df_filtered = df_roubos.copy()
     if bairros:
         df_filtered = df_filtered[df_filtered["bairro"].isin(bairros)]
 
-    df_roubo = df_filtered[
+    df_filtered = df_filtered[
         (df_filtered["tipo_crime"].str.lower() == "roubo")
     ].copy()
 
     # Aplica o filtro de mês apenas se "Todos" não estiver selecionado
-    if mes_selecionado != "Todos":
-        df_roubo = df_roubo[df_roubo["ano_mes"] == mes_selecionado]
+    if selected_month != "Todos":
+        df_filtered = df_filtered[df_filtered["ano_mes"] == selected_month]
 
-    # Aplica filtros de hora e dia da semana
-    if "hora" in df_roubo.columns:
-        df_roubo = df_roubo[(df_roubo["hora"] >= hora_selecionada[0]) & (df_roubo["hora"] <= hora_selecionada[1])]
-    if "dia_semana" in df_roubo.columns and dias_selecionados is not None:
-        df_roubo = df_roubo[df_roubo["dia_semana"].isin(dias_selecionados)]
+    # filtros de hora e dia da semana
+    if "hora" in df_roubos.columns:
+        hour_min, hour_max = 0, 23
+        selected_hour = st.slider("Filtrar por hora do dia:", min_value=hour_min, max_value=hour_max, value=(hour_min, hour_max))
+        df_filtered = df_filtered[(df_filtered["hora"] >= selected_hour[0]) & (df_filtered["hora"] <= selected_hour[1])]
+    if "dia_semana" in df_filtered.columns:
+        selectable_days = sorted(df_roubos["dia_semana"].dropna().unique())
+        selected_days = st.multiselect("Filtrar por dia da semana:", options=selectable_days, default=selectable_days)
+        df_filtered = df_filtered[df_filtered["dia_semana"].isin(selected_days)]
+        if selectable_days and not selected_days:
+          df_filtered = df_roubos.copy()
+          if bairros:
+              df_filtered = df_filtered[df_filtered["bairro"].isin(bairros)]
 
-    if df_roubo.empty:
-        st.warning("Nenhum dado de roubo encontrado para os filtros selecionados.")
-    else:
-        df_expanded = df_roubo.loc[df_roubo.index.repeat(df_roubo["quantidade_vitimas"])].reset_index(drop=True)
+          df_filtered = df_filtered[
+              (df_filtered["tipo_crime"].str.lower() == "roubo")
+          ].copy()
+          df_filtered = df_filtered[df_filtered["dia_semana"].isin(selectable_days)]
 
-        fig = px.density_mapbox(
+    if not df_filtered.empty:
+        df_expanded = df_filtered.loc[df_filtered.index.repeat(df_filtered["quantidade_vitimas"])].reset_index(drop=True)
+        fig = px.density_map(
             df_expanded,
             lat="latitude",
             lon="longitude",
             radius=15,
             center={"lat": -8.05, "lon": -34.9},
             zoom=11,
-            title=f"Mapa de Calor ({mes_selecionado})",
-            mapbox_style="carto-positron"
+            title=f"Mapa de Calor ({selected_month})",
         )
         fig.update_layout(height=700)
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown(f"Este mapa mostra a concentração de **roubos** por bairro em Recife no mês de **{mes_selecionado}**, com intensidade baseada no número de vítimas registradas.")
+        st.markdown(f"Este mapa mostra a concentração de **roubos** por bairro em Recife no mês de **{selected_month}**, com intensidade baseada no número de vítimas registradas.")
+    else:
+        st.warning("Nenhum dado de roubo encontrado para os filtros selecionados.")
 elif option == "Clusters":
     st.header(" Agrupamento de Bairros por Perfis de Roubos")
 
-    df_roubo = df[df["tipo_crime"].str.lower() == "roubo"].copy()
-    df_cluster = df_roubo.groupby("bairro").agg({
+    df_cluster = df_roubos.groupby("bairro").agg({
         "quantidade_vitimas": "sum",
         "latitude": "mean",
         "longitude": "mean"
@@ -329,7 +264,6 @@ elif option == "Clusters":
         st.plotly_chart(fig, use_container_width=True)
 elif option == "Anomalias":
     st.header(" Detecção de Anomalias no Número de Vítimas de Roubo")
-    df_ano = df_roubos.groupby("ano_mes")["quantidade_vitimas"].sum().reset_index()
 
     if df_ano.empty:
         st.warning(" Nenhum dado de roubo disponível para detecção de anomalias.")
