@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import IsolationForest, RandomForestClassifier
 
 st.set_page_config(page_title="Dashboard de Gráficos", layout="wide")
 
@@ -73,9 +74,6 @@ option = st.sidebar.radio(
     ),
     index=0
 )
-
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 
 if option == "Previsão de Roubo":
     st.header("🔮 Previsão de Ocorrência de Roubo")
