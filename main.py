@@ -7,7 +7,29 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(page_title="Dashboard de Gráficos", layout="wide")
-df = pd.read_csv("dataset_ocorrencias_delegacia_5.csv")
+# --- Lógica de Carregamento de Dados ---
+
+# Tenta carregar o dataset de treino
+try:
+    df_train = pd.read_csv("dataset_ocorrencias_delegacia_5.csv")
+except FileNotFoundError:
+    df_train = None
+
+# Adiciona o uploader de arquivo na barra lateral
+st.sidebar.title("Upload de Dataset")
+uploaded_file = st.sidebar.file_uploader("Carregue um CSV para teste", type="csv")
+
+# Define qual dataframe será usado
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.success("Dataset de teste carregado!")
+elif df_train is not None:
+    df = df_train.copy()
+    st.info("Mostrando dados do dataset de treino. Carregue um arquivo para analisar novos dados.")
+else:
+    st.error("Dataset de treino não encontrado. Por favor, adicione 'dataset_ocorrencias_delegacia_5.csv' à pasta ou carregue um novo arquivo.")
+    st.stop()
+
 df["data_ocorrencia"] = pd.to_datetime(df["data_ocorrencia"])
 df["ano_mes"] = df["data_ocorrencia"].dt.to_period("M").astype(str)
 df['hora'] = df['data_ocorrencia'].dt.hour
@@ -55,7 +77,7 @@ option = st.sidebar.radio(
     (
         "Gráficos relacionados a roubo",
         "Quantidade de vítimas x Bairro",
-        "Mapa de calor (Roubos)",
+        "Mapa de calor",
         "Clusters",
         "Anomalias"
     ),
@@ -201,11 +223,12 @@ elif option == "Quantidade de vítimas x Bairro":
 #         st.markdown(f"""
 #          Este mapa mostra a concentração de **roubos** por bairro em Recife no mês de **{mes_selecionado}**, com intensidade baseada no número de vítimas registradas.
 #         """)
-elif option == "Mapa de calor (Roubos)":
-    st.subheader("Mapa de Calor - Roubos em Recife")
+elif option == "Mapa de calor":
+    st.subheader("Mapa de Calor")
 
-    meses_disponiveis = sorted(df["ano_mes"].unique())
-    mes_selecionado = st.selectbox("Selecionar mês:", options=meses_disponiveis, index=len(meses_disponiveis)-1)
+    # Adiciona a opção "Todos" à lista de meses
+    meses_disponiveis = ["Todos"] + sorted(df["ano_mes"].unique())
+    mes_selecionado = st.selectbox("Selecionar mês:", options=meses_disponiveis, index=0)
 
     bairros = st.multiselect(
         "Filtrar bairros:",
@@ -231,9 +254,12 @@ elif option == "Mapa de calor (Roubos)":
         df_filtered = df_filtered[df_filtered["bairro"].isin(bairros)]
 
     df_roubo = df_filtered[
-        (df_filtered["tipo_crime"].str.lower() == "roubo") &
-        (df_filtered["ano_mes"] == mes_selecionado)
+        (df_filtered["tipo_crime"].str.lower() == "roubo")
     ].copy()
+
+    # Aplica o filtro de mês apenas se "Todos" não estiver selecionado
+    if mes_selecionado != "Todos":
+        df_roubo = df_roubo[df_roubo["ano_mes"] == mes_selecionado]
 
     # Aplica filtros de hora e dia da semana
     if "hora" in df_roubo.columns:
@@ -253,7 +279,7 @@ elif option == "Mapa de calor (Roubos)":
             radius=15,
             center={"lat": -8.05, "lon": -34.9},
             zoom=11,
-            title=f"Mapa de Calor - Roubos em Recife ({mes_selecionado})",
+            title=f"Mapa de Calor ({mes_selecionado})",
             mapbox_style="carto-positron"
         )
         fig.update_layout(height=700)
